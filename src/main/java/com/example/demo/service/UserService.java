@@ -20,6 +20,11 @@ public class UserService {
         this.jwtUtil = jwtUtil;
     }
     public LoginResponse login(LoginRequest request) {
+        if (request == null
+                || !StringUtils.hasText(request.getUsername())
+                || !StringUtils.hasText(request.getPassword())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }
         User user = userMapper.selectByUsername(request.getUsername());
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);

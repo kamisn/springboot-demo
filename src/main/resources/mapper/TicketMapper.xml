@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.TicketMapper">
+
+    <resultMap id="TicketResultMap" type="com.example.demo.entity.Ticket">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="priority" column="priority"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="handlerId" column="handler_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="closeTime" column="close_time"/>
+    </resultMap>
+<!--    上述为结果映射 解决数据库列名 和 Java 实体属性名 不匹配的问题
+            property：Java 实体类的属性名
+            column：数据库表的列名 -->
+    <insert id="insertTicket" useGeneratedKeys="true" keyProperty="id">
+<!--        useGeneratedKeys="true" keyProperty="id"：关键！-->
+<!--        数据库主键自增，插入后自动把生成的 id 赋值给 Ticket 对象的 id 属性-->
+<!--        所以你在 Service 里能直接 return ticket.getId();-->
+        INSERT INTO ticket (
+        title,
+        description,
+        status,
+        priority,
+        creator_id,
+        handler_id
+        )
+        VALUES (
+        #{title},
+        #{description},
+        #{status},
+        #{priority},
+        #{creatorId},
+        #{handlerId}
+<!--        #{xxx}：从传入的 Ticket 对象中取值，防 SQL 注入-->
+        )
+    </insert>
+
+    <select id="selectById" resultMap="TicketResultMap">
+        SELECT
+        id,
+        title,
+        description,
+        status,
+        priority,
+        creator_id,
+        handler_id,
+        create_time,
+        update_time,
+        close_time
+        FROM ticket
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectList" resultMap="TicketResultMap">
+<!--        id="selectById"：对应接口方法-->
+<!--        resultMap="TicketResultMap"：查询结果用上面定义的映射规则，自动封装成 Ticket 对象-->
+<!--        作用：传入 id，返回单个工单-->
+        SELECT
+        id,
+        title,
+        description,
+        status,
+        priority,
+        creator_id,
+        handler_id,
+        create_time,
+        update_time,
+        close_time
+        FROM ticket
+
+        WHERE 1 = 1<!-- 万能条件，方便后面拼接 AND -->
+
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+
+        <if test="priority != null and priority != ''">
+            AND priority = #{priority}
+        </if>
+
+        <if test="creatorId != null">
+            AND creator_id = #{creatorId}
+        </if>
+
+        <if test="handlerId != null">
+            AND handler_id = #{handlerId}
+        </if>
+
+        <if test="keyword != null and keyword != ''">
+            AND (
+            title LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+
+        ORDER BY create_time DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE ticket
+        SET
+        status = #{status},
+        close_time = CASE
+        WHEN #{status} = 'CLOSED' THEN NOW()
+        ELSE close_time
+        END
+        WHERE id = #{ticketId}
+    </update>
+    <update id="updatePriority">
+        UPDATE ticket
+        SET priority = #{priority}
+        WHERE id = #{ticketId}
+    </update>
+
+</mapper>

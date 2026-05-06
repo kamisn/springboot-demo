@@ -12,7 +12,9 @@ public enum ErrorCode {
 
     USERNAME_DUPLICATE(10001, "用户名已存在"),
     USER_NOT_FOUND(10002, "用户不存在"),
-    PASSWORD_ERROR(10003, "密码错误");
+    PASSWORD_ERROR(10003, "密码错误"),
+    TICKET_NOT_FOUND(10004,"工单不存在" );
+
 
     private final Integer code;
     private final String message;
