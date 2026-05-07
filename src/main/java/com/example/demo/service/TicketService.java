@@ -28,14 +28,14 @@ public class TicketService {
         if (request == null
                 || !StringUtils.hasText(request.getTitle())
                 || !StringUtils.hasText(request.getDescription())
-                || request.getCreatorId() == null) {
+           ) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
         Ticket ticket = new Ticket();
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
-        ticket.setCreatorId(request.getCreatorId());
+
         ticket.setHandlerId(request.getHandlerId());
 
         ticket.setStatus("OPEN");//上面这几条都是用户输入时影响不大的的没必要写枚举值

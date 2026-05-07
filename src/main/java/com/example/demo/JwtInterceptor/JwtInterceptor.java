@@ -4,7 +4,8 @@ import com.example.demo.common.CurrentUserContext;
 import com.example.demo.common.ErrorCode;
 import com.example.demo.common.JwtUtil;
 import com.example.demo.common.Result;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -15,11 +16,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class JwtInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public JwtInterceptor(JwtUtil jwtUtil, ObjectMapper objectMapper) {
+    public JwtInterceptor(JwtUtil jwtUtil, JsonMapper jsonMapper) {
         this.jwtUtil = jwtUtil;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
     @Override
@@ -33,7 +34,14 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         // 2. 从请求头中获取 Authorization
+        //请求在传入后端的事哦先被tomcat包装成request对象，
+        // 用这个对象去实现HttpServletRequest request,
+        //  HttpServletResponse response,这两个接口里写好的方法，
+        //  这里使用了getheader方法，传入了Authorization，
+        //   查出了里面写的token或者bearer token
         String authorization = request.getHeader("Authorization");
+
+
 
         if (!StringUtils.hasText(authorization)) {
             writeUnauthorized(response);
@@ -61,6 +69,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         } catch (Exception e) {
             writeUnauthorized(response);
             return false;
+            //try中解析token失败返回false
         }
     }
 
@@ -69,7 +78,14 @@ public class JwtInterceptor implements HandlerInterceptor {
                                 HttpServletResponse response,
                                 Object handler,
                                 Exception ex) {
-        // 请求结束后清理 ThreadLocal，避免线程复用导致用户信息污染
+        // 在 JWT 拦截器的 preHandle() 中解析 token，
+        // 并把当前用户信息存入 CurrentUserContext。
+        // 这个上下文底层使用的是 ThreadLocal，
+        // 这样 Service 层可以在当前请求线程中获取登录用户信息。
+        // 因为 Tomcat 使用线程池，请求结束后线程不会销毁，而是会被复用。
+        // 如果不清理 ThreadLocal，下一个请求复用同一个线程时，可能读到上一个用户的信息，造成用户身份污染。
+        // 所以我在拦截器的 afterCompletion() 中调用 CurrentUserContext.clear()，
+        // 请求结束后主动移除当前线程保存的用户信息
         CurrentUserContext.clear();
     }
 
@@ -82,6 +98,6 @@ public class JwtInterceptor implements HandlerInterceptor {
                 ErrorCode.UNAUTHORIZED.getMessage()
         );
 
-        response.getWriter().write(objectMapper.writeValueAsString(result));
+        response.getWriter().write(jsonMapper.writeValueAsString(result));
     }
 }
