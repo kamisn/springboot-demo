@@ -4,7 +4,7 @@ public class CreateTicketRequest {
     private String title;
     private String description;
     private String priority;
-    private Long handlerId;
+
 
     public String getTitle() {
         return title;
@@ -13,16 +13,6 @@ public class CreateTicketRequest {
     public void setTitle(String title) {
         this.title = title;
     }
-
-    public Long getHandlerId() {
-        return handlerId;
-    }
-
-    public void setHandlerId(Long handlerId) {
-        this.handlerId = handlerId;
-    }
-
-
 
     public String getPriority() {
         return priority;

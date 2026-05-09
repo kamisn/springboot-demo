@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.common.BusinessException;
+import com.example.demo.common.CurrentUserContext;
 import com.example.demo.common.ErrorCode;
 import com.example.demo.common.enums.TicketPriority;
 import com.example.demo.common.enums.TicketStatus;
@@ -24,7 +25,9 @@ public class TicketService {
         this.ticketMapper = ticketMapper;
     }
 
-    public Long createTicket(CreateTicketRequest request) {
+    public Long createTicket(CreateTicketRequest request ) {
+        Long currentUserId = CurrentUserContext.getUserId();
+
         if (request == null
                 || !StringUtils.hasText(request.getTitle())
                 || !StringUtils.hasText(request.getDescription())
@@ -36,7 +39,12 @@ public class TicketService {
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
 
-        ticket.setHandlerId(request.getHandlerId());
+
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        ticket.setCreatorId(currentUserId);
 
         ticket.setStatus("OPEN");//上面这几条都是用户输入时影响不大的的没必要写枚举值
 

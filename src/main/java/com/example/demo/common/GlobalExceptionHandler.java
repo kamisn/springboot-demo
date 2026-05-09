@@ -12,6 +12,10 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(Exception.class)
     public Result<String> handleException(Exception e) {
-        return Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), ErrorCode.SYSTEM_ERROR.getMessage());
+        e.printStackTrace();
+        return Result.fail(
+                ErrorCode.SYSTEM_ERROR.getCode(),
+                ErrorCode.SYSTEM_ERROR.getMessage()
+        );
     }
 }
