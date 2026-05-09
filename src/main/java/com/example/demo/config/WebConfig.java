@@ -1,6 +1,7 @@
 package com.example.demo.config;
 
 import com.example.demo.JwtInterceptor.JwtInterceptor;
+import com.example.demo.interceptor.AdminInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -9,9 +10,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
+    private final AdminInterceptor adminInterceptor;
 
-    public WebConfig(JwtInterceptor jwtInterceptor) {
+    public WebConfig(JwtInterceptor jwtInterceptor, AdminInterceptor adminInterceptor) {
         this.jwtInterceptor = jwtInterceptor;
+        this.adminInterceptor = adminInterceptor;
     }
 
     @Override
@@ -27,5 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/login",
                         "/user/register"
                 );
+        registry.addInterceptor(adminInterceptor)
+                .addPathPatterns("/admin/**");
     }
 }

@@ -60,9 +60,9 @@ public class JwtInterceptor implements HandlerInterceptor {
             // 4. 解析 token
             Long userId = Long.valueOf(jwtUtil.getUserId(token));
             String username = jwtUtil.getUsername(token);
-
+            String role = jwtUtil.getRole(token);
             // 5. 保存当前用户信息，后续 Service 可以直接取
-            CurrentUserContext.set(userId, username);
+            CurrentUserContext.set(userId, username,role);
 
             // 6. 放行
             return true;

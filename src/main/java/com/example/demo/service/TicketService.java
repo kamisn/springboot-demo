@@ -5,12 +5,12 @@ import com.example.demo.common.CurrentUserContext;
 import com.example.demo.common.ErrorCode;
 import com.example.demo.common.enums.TicketPriority;
 import com.example.demo.common.enums.TicketStatus;
-import com.example.demo.dto.CreateTicketRequest;
-import com.example.demo.dto.TicketQueryRequest;
-import com.example.demo.dto.UpdateTicketPriorityRequest;
-import com.example.demo.dto.UpdateTicketStatusRequest;
+import com.example.demo.dto.*;
 import com.example.demo.entity.Ticket;
+import com.example.demo.entity.User;
 import com.example.demo.mapper.TicketMapper;
+
+import com.example.demo.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -20,9 +20,11 @@ import java.util.List;
 public class TicketService {
 
     private final TicketMapper ticketMapper;
+    private final UserMapper userMapper;
 
-    public TicketService(TicketMapper ticketMapper) {
+    public TicketService(TicketMapper ticketMapper, UserMapper userMapper) {
         this.ticketMapper = ticketMapper;
+        this.userMapper = userMapper;
     }
 
     public Long createTicket(CreateTicketRequest request ) {
@@ -124,6 +126,31 @@ public class TicketService {
 
         int rows = ticketMapper.updatePriority(request.getTicketId(), request.getPriority());
 
+        return rows > 0;
+    }
+    public Boolean assignHandler(AssignTicketRequest request) {
+        if (request == null
+                || request.getTicketId() == null
+                || request.getHandlerId() == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }//这一步是判断前端传来的参数是否合法。
+
+        // Service 层兜底校验。即使前面有 AdminInterceptor，这里也保留。
+        if (!"ADMIN".equals(CurrentUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+//工单是否存在
+        Ticket ticket = ticketMapper.selectById(request.getTicketId());
+        if (ticket == null) {
+            throw new BusinessException(ErrorCode.TICKET_NOT_FOUND);
+        }
+        //处理人是否存在
+        User handler = userMapper.selectById(request.getHandlerId());
+        if (handler == null || !"HANDLER".equals(handler.getRole())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }
+
+        int rows = ticketMapper.assignHandler(request.getTicketId(), request.getHandlerId());
         return rows > 0;
     }
 }

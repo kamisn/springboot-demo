@@ -32,13 +32,14 @@ public class JwtUtil {
         //所以要先做一次初始化转换
     }
     //
-    public String createToken(long  userId, String username) {
+    public String createToken(long  userId, String username ,String role) {
         Date now = new Date();//当前时间
         Date expiration = new Date(now.getTime() + expire);//过期时间
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))//id
                 .claim("username", username)//
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(key)
@@ -82,5 +83,9 @@ public class JwtUtil {
         // 像 username 这种是自定义声明，也同样存放在 claims 中。
         // 区别只是标准声明通常有专门的 getter，比如 getSubject()，
         // 而自定义声明一般通过 claims.get(key, type) 来获取。
+    }
+    public String getRole(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("role", String.class);
     }
 }

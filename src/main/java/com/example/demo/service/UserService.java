@@ -32,8 +32,12 @@ public class UserService {
         if (!user.getPassword().equals(request.getPassword())) {
             throw new BusinessException(ErrorCode.PASSWORD_ERROR);
         }
-        String token = jwtUtil.createToken(user.getId(), user.getUsername());
-        return  new LoginResponse(token, user.getUsername(), user.getId());
+        String token = jwtUtil.createToken(
+                user.getId(),
+                user.getUsername(),
+                user.getRole()
+        );
+        return  new LoginResponse(token, user.getUsername(), user.getId(),  user.getRole());
     }
     public Long register(RegisterRequest request) {
         if (request == null

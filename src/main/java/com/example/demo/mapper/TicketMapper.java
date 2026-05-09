@@ -23,4 +23,6 @@ public interface TicketMapper {
     //如果不写 @Param，后面容易出现参数名对不上的问题
     int updatePriority(@Param("ticketId") Long ticketId,
                        @Param("priority") String priority);
+    int assignHandler(@Param("ticketId") Long ticketId,
+                      @Param("handlerId") Long handlerId);
 }

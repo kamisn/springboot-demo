@@ -38,5 +38,10 @@
                    #{status}
                )
     </insert>
+    <select id="selectById" resultType="com.example.demo.entity.User">
+        SELECT id, username, password, nickname, role, status, create_time, update_time
+        FROM `user`
+        WHERE id = #{id}
+    </select>
 
 </mapper>

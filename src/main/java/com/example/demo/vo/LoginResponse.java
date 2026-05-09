@@ -4,13 +4,15 @@ public class LoginResponse {
     private String token;
     private String username;
     private long userId;
+    private String role;
     public LoginResponse() {
 
     }
-    public LoginResponse( String token, String username, long userId) {
+    public LoginResponse( String token, String username, long userId,String role) {
         this.token = token;
         this.username = username;
         this.userId = userId;
+        this.role = role;
     }
 
     public String getToken() {
@@ -21,11 +23,19 @@ public class LoginResponse {
         this.token = token;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public long getUserId() {
         return userId;
     }
 
-    public void setUserId(Integer userId) {
+    public void setUserId(long userId) {
         this.userId = userId;
     }
 

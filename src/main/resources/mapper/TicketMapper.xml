@@ -118,5 +118,11 @@
         SET priority = #{priority}
         WHERE id = #{ticketId}
     </update>
+    <update id="assignHandler">
+        UPDATE ticket
+        SET handler_id = #{handlerId},
+        update_time = NOW()
+        WHERE id = #{ticketId}
+    </update>
 
 </mapper>
