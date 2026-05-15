@@ -7,6 +7,7 @@ public enum ErrorCode {
     BAD_REQUEST(400, "请求参数错误"),
     UNAUTHORIZED(401, "未登录或 token 无效"),
     FORBIDDEN(403, "没有权限"),
+    FORBIDDENUSER(403,"不是你的工单"),
     NOT_FOUND(404, "资源不存在"),
     SYSTEM_ERROR(500, "系统异常"),
 

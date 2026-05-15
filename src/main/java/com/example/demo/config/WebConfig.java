@@ -18,18 +18,23 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
-
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
-                //addPathPatterns("/**")
-                //   拦截所有请求。
                 .addPathPatterns("/**")
-//        excludePathPatterns("/user/login", "/user/register")
-//        登录和注册接口放行，不需要 token。
                 .excludePathPatterns(
+                        "/",
+                        "/index.html",
+                        "/favicon.ico",
+                        "/error",
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/webjars/**",
+                        "/static/**",
                         "/user/login",
                         "/user/register"
                 );
+
         registry.addInterceptor(adminInterceptor)
                 .addPathPatterns("/admin/**");
     }

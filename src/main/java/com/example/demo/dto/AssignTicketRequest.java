@@ -4,6 +4,7 @@ public class AssignTicketRequest {
 
     private Long ticketId;
     private Long handlerId;
+    private String expectedStatus;
 
     public Long getTicketId() {
         return ticketId;
@@ -15,6 +16,14 @@ public class AssignTicketRequest {
 
     public Long getHandlerId() {
         return handlerId;
+    }
+
+    public String getExpectedStatus() {
+        return expectedStatus;
+    }
+
+    public void setExpectedStatus(String expectedStatus) {
+        this.expectedStatus = expectedStatus;
     }
 
     public void setHandlerId(Long handlerId) {

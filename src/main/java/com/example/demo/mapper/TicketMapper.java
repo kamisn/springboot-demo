@@ -17,12 +17,13 @@ public interface TicketMapper {
     List<Ticket> selectList(TicketQueryRequest request);
 
     int updateStatus(@Param("ticketId") Long ticketId,
-                     @Param("status") String status);
-    //#{ticketId}
-    //#{status}
-    //如果不写 @Param，后面容易出现参数名对不上的问题
+                     @Param("status") String status,
+                     @Param("handlerId") Long handlerId,
+                     @Param("expectedStatus") String expectedStatus);
+
+    int assignHandler(@Param("ticketId") Long ticketId,
+                      @Param("handlerId") Long handlerId,
+                      @Param("expectedStatus") String expectedStatus);
     int updatePriority(@Param("ticketId") Long ticketId,
                        @Param("priority") String priority);
-    int assignHandler(@Param("ticketId") Long ticketId,
-                      @Param("handlerId") Long handlerId);
 }

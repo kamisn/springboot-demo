@@ -3,8 +3,10 @@ package com.example.demo.dto;
 public class CreateTicketRequest {
     private String title;
     private String description;
-    private String priority;
-
+    // 移除了前端直接传的 priority
+    private String category;
+    private String urgency;
+    private String impactScope;
 
     public String getTitle() {
         return title;
@@ -14,19 +16,35 @@ public class CreateTicketRequest {
         this.title = title;
     }
 
-    public String getPriority() {
-        return priority;
-    }
-
-    public void setPriority(String priority) {
-        this.priority = priority;
-    }
-
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getUrgency() {
+        return urgency;
+    }
+
+    public void setUrgency(String urgency) {
+        this.urgency = urgency;
+    }
+
+    public String getImpactScope() {
+        return impactScope;
+    }
+
+    public void setImpactScope(String impactScope) {
+        this.impactScope = impactScope;
     }
 }

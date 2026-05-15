@@ -6,13 +6,20 @@ public class Ticket {
     private Long id;
     private String title;
     private String description;
-    private String status;
-    private String priority;
+    private String category;       // 类别: LOGIN, NETWORK, etc.
+    private String impactScope;    // 影响范围: SELF, DEPARTMENT, ALL
+    private String urgency;        // 紧急度: LOW, MEDIUM, HIGH
+    private String status;         // OPEN, PROCESSING, RESOLVED, CLOSED, OVERDUE
+    private String priority;       // P0, P1, P2, P3
+    private String priorityReason; // 定级原因
     private Long creatorId;
     private Long handlerId;
+    private Integer overdue;       // 是否超时: 0=否, 1=是
+    private Integer escalationLevel; // 升级层级
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private LocalDateTime closeTime;
+    private LocalDateTime deadlineTime;
 
     public Long getId() {
         return id;
@@ -38,48 +45,32 @@ public class Ticket {
         this.description = description;
     }
 
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getImpactScope() {
+        return impactScope;
+    }
+
+    public void setImpactScope(String impactScope) {
+        this.impactScope = impactScope;
+    }
+
+    public String getUrgency() {
+        return urgency;
+    }
+
+    public void setUrgency(String urgency) {
+        this.urgency = urgency;
+    }
+
     public String getStatus() {
         return status;
-    }
-
-    public Long getCreatorId() {
-        return creatorId;
-    }
-
-    public void setCreatorId(Long creatorId) {
-        this.creatorId = creatorId;
-    }
-
-    public LocalDateTime getCloseTime() {
-        return closeTime;
-    }
-
-    public void setCloseTime(LocalDateTime closeTime) {
-        this.closeTime = closeTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public Long getHandlerId() {
-        return handlerId;
-    }
-
-    public void setHandlerId(Long handlerId) {
-        this.handlerId = handlerId;
     }
 
     public void setStatus(String status) {
@@ -92,5 +83,77 @@ public class Ticket {
 
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public String getPriorityReason() {
+        return priorityReason;
+    }
+
+    public void setPriorityReason(String priorityReason) {
+        this.priorityReason = priorityReason;
+    }
+
+    public Long getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public Long getHandlerId() {
+        return handlerId;
+    }
+
+    public void setHandlerId(Long handlerId) {
+        this.handlerId = handlerId;
+    }
+
+    public Integer getOverdue() {
+        return overdue;
+    }
+
+    public void setOverdue(Integer overdue) {
+        this.overdue = overdue;
+    }
+
+    public Integer getEscalationLevel() {
+        return escalationLevel;
+    }
+
+    public void setEscalationLevel(Integer escalationLevel) {
+        this.escalationLevel = escalationLevel;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public LocalDateTime getCloseTime() {
+        return closeTime;
+    }
+
+    public void setCloseTime(LocalDateTime closeTime) {
+        this.closeTime = closeTime;
+    }
+
+    public LocalDateTime getDeadlineTime() {
+        return deadlineTime;
+    }
+
+    public void setDeadlineTime(LocalDateTime deadlineTime) {
+        this.deadlineTime = deadlineTime;
     }
 }

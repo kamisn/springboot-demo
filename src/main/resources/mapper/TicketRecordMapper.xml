@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.mapper.TicketRecordMapper">
+
+    <resultMap id="TicketRecordResultMap" type="com.example.demo.entity.TicketRecord">
+        <id property="id" column="id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="actionType" column="action_type"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_record (
+            ticket_id,
+            operator_id,
+            action_type,
+            content
+        ) VALUES (
+                     #{ticketId},
+                     #{operatorId},
+                     #{actionType},
+                     #{content}
+                 )
+    </insert>
+
+    <select id="selectByTicketId" resultMap="TicketRecordResultMap">
+        SELECT
+            id,
+            ticket_id,
+            operator_id,
+            action_type,
+            content,
+            create_time
+        FROM ticket_record
+        WHERE ticket_id = #{ticketId}
+        ORDER BY create_time ASC
+    </select>
+
+</mapper>

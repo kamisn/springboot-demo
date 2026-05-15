@@ -5,7 +5,9 @@ public enum TicketStatus {
     OPEN,
     PROCESSING,
     RESOLVED,
-    CLOSED;
+    CLOSED,
+    OVERDUE,   // 新增：超时
+    ESCALATED; // 新增：已升级
 
     public static boolean isValid(String status) {
         if (status == null) {
