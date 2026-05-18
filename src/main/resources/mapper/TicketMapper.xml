@@ -126,10 +126,40 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectOverdueTickets" resultMap="TicketResultMap">
+        <![CDATA[
+        SELECT
+            id,
+            title,
+            description,
+            category,
+            impact_scope,
+            urgency,
+            status,
+            priority,
+            priority_reason,
+            creator_id,
+            handler_id,
+            overdue,
+            escalation_level,
+            create_time,
+            update_time,
+            close_time,
+            deadline_time
+        FROM ticket
+        WHERE status IN ('OPEN', 'PROCESSING')
+          AND deadline_time < #{now}
+          AND overdue = 0
+        ORDER BY deadline_time ASC
+        LIMIT 100
+        ]]>
+    </select>
+
     <update id="updateStatus">
         UPDATE ticket
         SET
         status = #{status},
+        update_time = NOW(),
         close_time = CASE
         WHEN #{status} = 'CLOSED' THEN NOW()
         ELSE close_time
@@ -153,5 +183,12 @@
         WHERE id = #{ticketId}
         AND status = #{expectedStatus}
     </update>
-
+    <update id="markOverdue">
+        UPDATE ticket
+        SET overdue = 1,
+        escalation_level = escalation_level + 1,
+        status = 'OVERDUE',
+        update_time = NOW()
+        WHERE id = #{ticketId}
+    </update>
 </mapper>

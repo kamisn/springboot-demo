@@ -7,6 +7,7 @@ public class CreateTicketRequest {
     private String category;
     private String urgency;
     private String impactScope;
+    private String requestId;
 
     public String getTitle() {
         return title;
@@ -47,4 +48,8 @@ public class CreateTicketRequest {
     public void setImpactScope(String impactScope) {
         this.impactScope = impactScope;
     }
+
+    public String getRequestId() { return requestId; }
+
+    public void setRequestId(String requestId) { this.requestId = requestId; }
 }

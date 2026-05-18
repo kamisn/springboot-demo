@@ -14,6 +14,7 @@ import com.example.demo.mapper.TicketMapper;
 import com.example.demo.mapper.TicketRecordMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.vo.TicketDetailVO;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -26,11 +27,14 @@ public class TicketService {
     private final TicketMapper ticketMapper;
     private final UserMapper userMapper;
     private final TicketRecordMapper ticketRecordMapper;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public TicketService(TicketMapper ticketMapper, UserMapper userMapper, TicketRecordMapper ticketRecordMapper) {
+
+    public TicketService(TicketMapper ticketMapper, UserMapper userMapper, TicketRecordMapper ticketRecordMapper, StringRedisTemplate stringRedisTemplate) {
         this.ticketMapper = ticketMapper;
         this.userMapper = userMapper;
         this.ticketRecordMapper = ticketRecordMapper;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     /**
@@ -39,7 +43,15 @@ public class TicketService {
     public Long createTicket(CreateTicketRequest request) {
         // 1. 获取当前登录用户
         Long currentUserId = CurrentUserContext.getUserId();
-
+        // 幂等：Redis SETNX 防重复提交
+        if (StringUtils.hasText(request.getRequestId())) {
+            String redisKey = "ticket:request:" + request.getRequestId();
+            Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(redisKey, "1");
+            if (Boolean.FALSE.equals(success)) {
+                throw new BusinessException(ErrorCode.DUPLICATE_REQUEST);
+            }
+            stringRedisTemplate.expire(redisKey, 5, java.util.concurrent.TimeUnit.MINUTES);
+        }
         // 2. 参数校验
         if (request == null
                 || !StringUtils.hasText(request.getTitle())
@@ -100,14 +112,10 @@ public class TicketService {
             impact = "LOW";
         }
 
-        // 2. 服务关键性判断
-        boolean criticalService = "LOGIN".equals(category) || "PAYMENT".equals(category) || "CORE_API".equals(category);
-
-        // 3. 矩阵判断
+        // 2. 矩阵判断
         if ("HIGH".equals(impact) && "HIGH".equals(urgency))   return TicketPriority.P0.name();
         if ("HIGH".equals(impact) && !"LOW".equals(urgency))   return TicketPriority.P1.name();
         if ("MEDIUM".equals(impact) && "HIGH".equals(urgency)) return TicketPriority.P1.name();
-        if (criticalService && "HIGH".equals(urgency))         return TicketPriority.P1.name();
         if ("LOW".equals(impact) && "HIGH".equals(urgency))    return TicketPriority.P2.name();
         if ("MEDIUM".equals(impact) && "MEDIUM".equals(urgency)) return TicketPriority.P2.name();
         return TicketPriority.P3.name();
@@ -142,6 +150,7 @@ public class TicketService {
     }
 
     public Ticket getTicketDetail(Long id) {
+
         if (id == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
@@ -151,7 +160,12 @@ public class TicketService {
         if (ticket == null) {
             throw new BusinessException(ErrorCode.TICKET_NOT_FOUND);
         }
-
+        if ("HANDLER".equals(CurrentUserContext.getRole())&& !CurrentUserContext.getUserId().equals(ticket.getHandlerId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if ("USER".equals(CurrentUserContext.getRole())&& !CurrentUserContext.getUserId().equals(ticket.getCreatorId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
         return ticket;
     }
 
@@ -163,82 +177,106 @@ public class TicketService {
         return ticketMapper.selectList(request);
     }
 
-    public Boolean updateTicketStatus(UpdateTicketStatusRequest request) {
+    public Boolean handlerUpdateStatus(UpdateTicketStatusRequest request) {
         if (request == null
                 || request.getTicketId() == null
                 || !StringUtils.hasText(request.getStatus())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
+
+        if (!"HANDLER".equals(CurrentUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
         Ticket ticket = ticketMapper.selectById(request.getTicketId());
         if (ticket == null) {
             throw new BusinessException(ErrorCode.TICKET_NOT_FOUND);
         }
-        if (!TicketStatus.isValid(request.getStatus())) {
+        if (!CurrentUserContext.getUserId().equals(ticket.getHandlerId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+        TicketStatus current = TicketStatus.fromString(ticket.getStatus());
+        TicketStatus target = TicketStatus.fromString(request.getStatus());
+
+        if (current == null || target == null || !current.canTransitionTo(target)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "当前状态 " + ticket.getStatus() + " 不允许变更为 " + request.getStatus());
+        }
+
+        int rows = ticketMapper.updateStatus(
+                request.getTicketId(),
+                target.name(),
+                ticket.getHandlerId(),
+                current.name()
+        );
+        if (rows == 0) {
+            throw new BusinessException(ErrorCode.TICKET_STATUS_CHANGED);
+        }
+
+        TicketRecord record = new TicketRecord();
+        record.setTicketId(ticket.getId());
+        record.setOperatorId(CurrentUserContext.getUserId());
+        record.setActionType("STATUS_CHANGE");
+        record.setContent("处理人将工单状态从 " + current.name() + " 变更为 " + target.name());
+        ticketRecordMapper.insertRecord(record);
+
+        return true;
+    }
+
+    public Boolean closeOrReopenTicket(Long ticketId, String action) {
+        if (ticketId == null || !StringUtils.hasText(action)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
         String role = CurrentUserContext.getRole();
-        Long myUserId = CurrentUserContext.getUserId();
-
-        if (!"HANDLER".equals(role) && !"ADMIN".equals(role) && !"USER".equals(role)) {
+        if (!"ADMIN".equals(role) && !"USER".equals(role)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
-        boolean allowed = false;
-
-        if ("HANDLER".equals(role)) {
-            if (!myUserId.equals(ticket.getHandlerId())) {
-                throw new BusinessException(ErrorCode.FORBIDDEN);
-            }
-            if ("OPEN".equals(ticket.getStatus()) && "PROCESSING".equals(request.getStatus())) {
-                allowed = true;
-            } else if ("PROCESSING".equals(ticket.getStatus()) && "RESOLVED".equals(request.getStatus())) {
-                allowed = true;
-            }
+        Ticket ticket = ticketMapper.selectById(ticketId);
+        if (ticket == null) {
+            throw new BusinessException(ErrorCode.TICKET_NOT_FOUND);
         }
 
-        if ("ADMIN".equals(role)) {
-            if ("RESOLVED".equals(ticket.getStatus()) && "CLOSED".equals(request.getStatus())) {
-                allowed = true;
-            } else if ("CLOSED".equals(ticket.getStatus()) && "OPEN".equals(request.getStatus())) {
-                allowed = true;
-            }
+        if ("USER".equals(role) && !CurrentUserContext.getUserId().equals(ticket.getCreatorId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
-        if ("USER".equals(role)) {
-            if (!myUserId.equals(ticket.getCreatorId())) {
-                throw new BusinessException(ErrorCode.FORBIDDENUSER);
-            }
-            if ("RESOLVED".equals(ticket.getStatus()) && "CLOSED".equals(request.getStatus())) {
-                allowed = true;
-            } else if ("CLOSED".equals(ticket.getStatus()) && "OPEN".equals(request.getStatus())) {
-                allowed = true;
-            }
-        }
+        TicketStatus current = TicketStatus.fromString(ticket.getStatus());
+        TicketStatus target;
+        String operatorName;
 
-        if (!allowed) {
+        if ("CLOSE".equals(action)) {
+            target = TicketStatus.CLOSED;
+            operatorName = "关闭了工单";
+        } else if ("REOPEN".equals(action)) {
+            target = TicketStatus.OPEN;
+            operatorName = "重开了工单";
+        } else {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
-        Long sqlHandlerId = "HANDLER".equals(role) ? ticket.getHandlerId() : null;
-
-        int rows = ticketMapper.updateStatus(
-                request.getTicketId(),
-                request.getStatus(),
-                sqlHandlerId,
-                ticket.getStatus()
-        );
-
-        if (rows > 0) {
-            TicketRecord record = new TicketRecord();
-            record.setTicketId(ticket.getId());
-            record.setOperatorId(myUserId);
-            record.setActionType("STATUS_CHANGE");
-            record.setContent("用户(" + role + ")将工单状态从 " + ticket.getStatus() + " 变更为 " + request.getStatus());
-            ticketRecordMapper.insertRecord(record);
+        if (current == null || !current.canTransitionTo(target)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "当前状态 " + ticket.getStatus() + " 不允许变更为 " + target.name());
         }
-        return rows > 0;
+
+        int rows = ticketMapper.updateStatus(ticketId, target.name(), null, current.name());
+        if (rows == 0) {
+            throw new BusinessException(ErrorCode.TICKET_STATUS_CHANGED);
+        }
+
+        TicketRecord record = new TicketRecord();
+        record.setTicketId(ticket.getId());
+        record.setOperatorId(CurrentUserContext.getUserId());
+        record.setActionType("STATUS_CHANGE");
+        record.setContent(role + " " + operatorName + "（" + current.name() + " → " + target.name() + "）");
+        ticketRecordMapper.insertRecord(record);
+
+        return true;
     }
+
     public Boolean updateTicketPriority(UpdateTicketPriorityRequest request) {
 
         if (request == null
@@ -263,7 +301,7 @@ public class TicketService {
 
         return rows > 0;
     }
-    public Boolean assignHandler(AssignTicketRequest request) {
+    public Boolean assignHandler(AssignTicketRequest request)  {
         if (request == null
                 || request.getTicketId() == null
                 || request.getHandlerId() == null) {
@@ -277,14 +315,16 @@ public class TicketService {
 
         // 1. 工单是否存在
         Ticket ticket = ticketMapper.selectById(request.getTicketId());
+
         if (ticket == null) {
             throw new BusinessException(ErrorCode.TICKET_NOT_FOUND);
         }
 
-        // 【新增核心逻辑 1】：只能分配状态为 OPEN 的工单，防止已被处理关闭的工单被二次分配
-        if (!"OPEN".equals(ticket.getStatus())) {
-            // 如果有更合适的 ErrorCode（比如 STATUS_ERROR），可以换掉 BAD_REQUEST
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        // 只能分配 OPEN 状态的工单
+        TicketStatus currentStatus = TicketStatus.fromString(ticket.getStatus());
+        if (currentStatus == null || !currentStatus.canTransitionTo(TicketStatus.PROCESSING)) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "当前状态 " + ticket.getStatus() + " 不允许分配处理人");
         }
 
         // 2. 处理人是否存在
@@ -318,8 +358,14 @@ public class TicketService {
     }
 
     public TicketDetailVO getTicketWithRecords(Long id) {
-        // TODO: 查工单详情 + 查处理记录列表，组装成 TicketDetailVO 返回
-        return null;
+        Ticket ticket = getTicketDetail(id);
+        List<TicketRecord> records = ticketRecordMapper.selectByTicketId(id);
+
+        TicketDetailVO vo = new TicketDetailVO();
+        vo.setTicket(ticket);
+        vo.setRecords(records);
+        return vo;
+
     }
 
 }

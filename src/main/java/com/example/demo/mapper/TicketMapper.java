@@ -5,6 +5,7 @@ import com.example.demo.entity.Ticket;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -15,6 +16,9 @@ public interface TicketMapper {
     Ticket selectById(Long id);
 
     List<Ticket> selectList(TicketQueryRequest request);
+
+    List<Ticket> selectOverdueTickets(@Param("now") LocalDateTime now);
+    int markOverdue(@Param("ticketId") Long ticketId);
 
     int updateStatus(@Param("ticketId") Long ticketId,
                      @Param("status") String status,

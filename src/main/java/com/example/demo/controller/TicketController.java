@@ -1,18 +1,17 @@
 package com.example.demo.controller;
 
+import com.example.demo.common.BusinessException;
+import com.example.demo.common.CurrentUserContext;
+import com.example.demo.common.ErrorCode;
 import com.example.demo.common.Result;
 import com.example.demo.dto.CreateTicketRequest;
 import com.example.demo.dto.TicketQueryRequest;
-import com.example.demo.dto.UpdateTicketPriorityRequest;
-import com.example.demo.dto.UpdateTicketStatusRequest;
-import com.example.demo.entity.Ticket;
 import com.example.demo.service.TicketService;
+import com.example.demo.vo.TicketDetailVO;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/ticket")
+@RequestMapping("/tickets")
 public class TicketController {
 
     private final TicketService ticketService;
@@ -21,36 +20,37 @@ public class TicketController {
         this.ticketService = ticketService;
     }
 
-    @PostMapping("/create")
+    @PostMapping
     public Result<Long> createTicket(@RequestBody CreateTicketRequest request) {
         Long ticketId = ticketService.createTicket(request);
         return Result.success(ticketId);
-//        前端传 title、description、priority、creatorId、handlerId
-//        Controller 调 Service
-//        Service 校验参数，设置默认状态 OPEN
-//        Mapper 插入 ticket 表
-//        返回新工单 id
     }
     @GetMapping("/{id}")
-    public Result<Ticket> getTicketDetail(@PathVariable Long id) {
-        Ticket ticket = ticketService.getTicketDetail(id);
-        return Result.success(ticket);
+    public Result<TicketDetailVO> getTicketDetail(@PathVariable Long id) {
+        return Result.success(ticketService.getTicketWithRecords(id));
     }
 
-    @GetMapping("/list")
-    public Result<List<Ticket>> listTickets(TicketQueryRequest request) {
-        List<Ticket> tickets = ticketService.listTickets(request);
-        return Result.success(tickets);
+    @GetMapping
+    public Result<?> listTickets(TicketQueryRequest request) {
+        if (!"ADMIN".equals(CurrentUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        return Result.success(ticketService.listTickets(request));
     }
 
-    @PostMapping("/status")
-    public Result<Boolean> updateTicketStatus(@RequestBody UpdateTicketStatusRequest request) {
-        Boolean result = ticketService.updateTicketStatus(request);
-        return Result.success(result);
+    @GetMapping("/my")
+    public Result<?> myTickets(TicketQueryRequest request) {
+        request.setCreatorId(CurrentUserContext.getUserId());
+        return Result.success(ticketService.listTickets(request));
     }
-    @PostMapping("/priority")
-    public Result<Boolean> updateTicketPriority(@RequestBody UpdateTicketPriorityRequest request) {
-        Boolean result = ticketService.updateTicketPriority(request);
-        return Result.success(result);
+
+    @PutMapping("/{id}/close")
+    public Result<Boolean> closeTicket(@PathVariable Long id) {
+        return Result.success(ticketService.closeOrReopenTicket(id, "CLOSE"));
+    }
+
+    @PutMapping("/{id}/reopen")
+    public Result<Boolean> reopenTicket(@PathVariable Long id) {
+        return Result.success(ticketService.closeOrReopenTicket(id, "REOPEN"));
     }
 }
