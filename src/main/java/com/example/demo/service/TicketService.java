@@ -13,6 +13,7 @@ import com.example.demo.mapper.TicketMapper;
 
 import com.example.demo.mapper.TicketRecordMapper;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.vo.TicketListVO;
 import com.example.demo.vo.TicketDetailVO;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -149,6 +150,36 @@ public class TicketService {
         }
     }
 
+    private void fillSlaStatus(Ticket ticket) {
+        if (ticket == null) return;
+        if (ticket.getDeadlineTime() == null) {
+            ticket.setSlaStatus("正常");
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 调度器已标记超时
+        if (ticket.getOverdue() != null && ticket.getOverdue() == 1) {
+            ticket.setSlaStatus("已超时");
+            return;
+        }
+
+        // deadline 已过但调度器还没扫到（10分钟窗口）
+        if (now.isAfter(ticket.getDeadlineTime())) {
+            ticket.setSlaStatus("已超时");
+            return;
+        }
+
+        // 距 deadline 不到 1 小时
+        if (now.plusHours(1).isAfter(ticket.getDeadlineTime())) {
+            ticket.setSlaStatus("即将超时");
+            return;
+        }
+
+        ticket.setSlaStatus("正常");
+    }
+
     public Ticket getTicketDetail(Long id) {
 
         if (id == null) {
@@ -166,15 +197,19 @@ public class TicketService {
         if ("USER".equals(CurrentUserContext.getRole())&& !CurrentUserContext.getUserId().equals(ticket.getCreatorId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+
+        fillSlaStatus(ticket);
         return ticket;
     }
 
-    public List<Ticket> listTickets(TicketQueryRequest request) {
+    public List<TicketListVO> listTickets(TicketQueryRequest request) {
         if (request == null) {
             request = new TicketQueryRequest();
         }
 
-        return ticketMapper.selectList(request);
+        List<Ticket> tickets = ticketMapper.selectList(request);
+        tickets.forEach(this::fillSlaStatus);
+        return tickets.stream().map(TicketListVO::from).toList();
     }
 
     public Boolean handlerUpdateStatus(UpdateTicketStatusRequest request) {
@@ -299,7 +334,18 @@ public class TicketService {
 
         int rows = ticketMapper.updatePriority(request.getTicketId(), request.getPriority());
 
-        return rows > 0;
+        if (rows == 0) {
+            return false;
+        }
+
+        TicketRecord record = new TicketRecord();
+        record.setTicketId(ticket.getId());
+        record.setOperatorId(CurrentUserContext.getUserId());
+        record.setActionType("PRIORITY_CHANGE");
+        record.setContent("管理员将优先级从 " + ticket.getPriority() + " 修改为 " + request.getPriority());
+        ticketRecordMapper.insertRecord(record);
+
+        return true;
     }
     public Boolean assignHandler(AssignTicketRequest request)  {
         if (request == null

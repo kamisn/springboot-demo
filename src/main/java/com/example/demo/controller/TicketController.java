@@ -8,7 +8,10 @@ import com.example.demo.dto.CreateTicketRequest;
 import com.example.demo.dto.TicketQueryRequest;
 import com.example.demo.service.TicketService;
 import com.example.demo.vo.TicketDetailVO;
+import com.example.demo.vo.TicketListVO;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/tickets")
@@ -31,7 +34,7 @@ public class TicketController {
     }
 
     @GetMapping
-    public Result<?> listTickets(TicketQueryRequest request) {
+    public Result<List<TicketListVO>> listTickets(TicketQueryRequest request) {
         if (!"ADMIN".equals(CurrentUserContext.getRole())) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
@@ -39,7 +42,7 @@ public class TicketController {
     }
 
     @GetMapping("/my")
-    public Result<?> myTickets(TicketQueryRequest request) {
+    public Result<List<TicketListVO>> myTickets(TicketQueryRequest request) {
         request.setCreatorId(CurrentUserContext.getUserId());
         return Result.success(ticketService.listTickets(request));
     }

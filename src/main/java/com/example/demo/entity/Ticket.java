@@ -21,6 +21,9 @@ public class Ticket {
     private LocalDateTime closeTime;
     private LocalDateTime deadlineTime;
 
+    // 非数据库字段，Service 层计算
+    private String slaStatus;
+
     public Long getId() {
         return id;
     }
@@ -155,5 +158,13 @@ public class Ticket {
 
     public void setDeadlineTime(LocalDateTime deadlineTime) {
         this.deadlineTime = deadlineTime;
+    }
+
+    public String getSlaStatus() {
+        return slaStatus;
+    }
+
+    public void setSlaStatus(String slaStatus) {
+        this.slaStatus = slaStatus;
     }
 }

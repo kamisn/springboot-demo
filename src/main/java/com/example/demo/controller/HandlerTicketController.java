@@ -4,8 +4,8 @@ import com.example.demo.common.CurrentUserContext;
 import com.example.demo.common.Result;
 import com.example.demo.dto.TicketQueryRequest;
 import com.example.demo.dto.UpdateTicketStatusRequest;
-import com.example.demo.entity.Ticket;
 import com.example.demo.service.TicketService;
+import com.example.demo.vo.TicketListVO;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class HandlerTicketController {
     }
 
     @GetMapping("/my")
-    public Result<List<Ticket>> myTickets(TicketQueryRequest request) {
+    public Result<List<TicketListVO>> myTickets(TicketQueryRequest request) {
         request.setHandlerId(CurrentUserContext.getUserId());
         return Result.success(ticketService.listTickets(request));
     }
